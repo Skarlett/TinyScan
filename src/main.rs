@@ -5,17 +5,6 @@ use async_std::net::TcpStream;
 use async_std::prelude::*;
 use async_std::task;
 
-enum ServerState {
-    Ready,
-    Offline
-}
-
-async fn full_connect(addr: &String) -> ServerState {
-    match TcpStream::connect(addr).await {
-        Ok(_) => ServerState::Ready,
-        Err(_) => ServerState::Offline
-    }
-}
 
 #[async_std::main]
 async fn main() -> io::Result<()> {
@@ -23,15 +12,16 @@ async fn main() -> io::Result<()> {
         let file = File::open(&path).await?;
         let mut lines = io::BufReader::new(file).lines();    
 
-        while let Some(line) = lines.next().await {
-            let addr = line?;
+        while let Some(Ok(addr)) = lines.next().await {
             task::spawn(async move {
-                match full_connect(&addr).await {
-                    ServerState::Ready => println!("{}", addr),
-                    ServerState::Offline => {}
+                match TcpStream::connect(addr).await {
+                    Ok(_) => {},
+                    Err(_) => {}
                 }
             });
         }
     }
     Ok(())
 }
+
+
